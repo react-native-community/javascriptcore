@@ -105,6 +105,21 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    androidComponents {
+        onVariants(selector().all()) {
+            packaging.jniLibs.excludes.add("**/libjsctooling.so")
+            packaging.jniLibs.pickFirsts.set([
+                "**/libfbjni.so",
+                "**/libreactnative.so",
+                "**/libjsi.so",
+                "**/libc++_shared.so",
+                "**/libjsc.so",
+                // overwrites pickFirsts from RNGP and removes libjsctooling.so from pickFirsts
+                // "**/libjsctooling.so"
+            ])
+        }
+    }
 }
 
 dependencies {
