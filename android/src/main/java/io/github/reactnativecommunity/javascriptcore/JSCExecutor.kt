@@ -16,9 +16,7 @@ import com.facebook.soloader.SoLoader
 @DoNotStrip
 internal class JSCExecutor(jscConfig: ReadableNativeMap) :
     JavaScriptExecutor(initHybrid(jscConfig)) {
-  override fun getName(): String {
-    return "JSCExecutor"
-  }
+  override fun getName(): String = "JSCExecutor"
 
   private companion object {
     init {
