@@ -14,7 +14,9 @@ import com.facebook.react.uimanager.ViewManager
 
 @Suppress("Unused")
 class JSCPackage : ReactPackage {
-  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = emptyList()
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
+    emptyList()
 
-  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
+    emptyList()
 }
