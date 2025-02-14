@@ -1,0 +1,103 @@
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/TaskConfiguration.kt b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/TaskConfiguration.kt
+index b676d47..2a7fab3 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/TaskConfiguration.kt
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/TaskConfiguration.kt
+@@ -13,6 +13,7 @@ import com.facebook.react.utils.KotlinStdlibCompatUtils.capitalizeCompat
+ import com.facebook.react.utils.NdkConfiguratorUtils.configureJsEnginePackagingOptions
+ import com.facebook.react.utils.NdkConfiguratorUtils.configureNewArchPackagingOptions
+ import com.facebook.react.utils.ProjectUtils.isHermesEnabled
++import com.facebook.react.utils.ProjectUtils.useThirdPartyJSC
+ import com.facebook.react.utils.detectedCliFile
+ import com.facebook.react.utils.detectedEntryFile
+ import java.io.File
+@@ -48,9 +49,10 @@ internal fun Project.configureReactTasks(variant: Variant, config: ReactExtensio
+       }
+   val isDebuggableVariant =
+       config.debuggableVariants.get().any { it.equals(variant.name, ignoreCase = true) }
++  val useThirdPartyJSC = project.useThirdPartyJSC
+ 
+   configureNewArchPackagingOptions(project, config, variant)
+-  configureJsEnginePackagingOptions(config, variant, isHermesEnabledInThisVariant)
++  configureJsEnginePackagingOptions(config, variant, isHermesEnabledInThisVariant, useThirdPartyJSC)
+ 
+   if (!isDebuggableVariant) {
+     val entryFileEnvVariable = System.getenv("ENTRY_FILE")
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/NdkConfiguratorUtils.kt b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/NdkConfiguratorUtils.kt
+index 80248e4..5e0af89 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/NdkConfiguratorUtils.kt
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/NdkConfiguratorUtils.kt
+@@ -110,15 +110,19 @@ internal object NdkConfiguratorUtils {
+       config: ReactExtension,
+       variant: Variant,
+       hermesEnabled: Boolean,
++      useThirdPartyJSC: Boolean,
+   ) {
+     if (config.enableSoCleanup.get()) {
+-      val (excludes, includes) = getPackagingOptionsForVariant(hermesEnabled)
++      val (excludes, includes) = getPackagingOptionsForVariant(hermesEnabled, useThirdPartyJSC)
+       variant.packaging.jniLibs.excludes.addAll(excludes)
+       variant.packaging.jniLibs.pickFirsts.addAll(includes)
+     }
+   }
+ 
+-  fun getPackagingOptionsForVariant(hermesEnabled: Boolean): Pair<List<String>, List<String>> {
++  fun getPackagingOptionsForVariant(
++    hermesEnabled: Boolean,
++    useThirdPartyJSC: Boolean,
++  ): Pair<List<String>, List<String>> {
+     val excludes = mutableListOf<String>()
+     val includes = mutableListOf<String>()
+     if (hermesEnabled) {
+@@ -126,6 +130,11 @@ internal object NdkConfiguratorUtils {
+       excludes.add("**/libjsctooling.so")
+       includes.add("**/libhermes.so")
+       includes.add("**/libhermestooling.so")
++    } else if (useThirdPartyJSC) {
++      excludes.add("**/libhermes.so")
++      excludes.add("**/libhermestooling.so")
++      excludes.add("**/libjsctooling.so")
++      includes.add("**/libjsc.so")
+     } else {
+       excludes.add("**/libhermes.so")
+       excludes.add("**/libhermestooling.so")
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/ProjectUtils.kt b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/ProjectUtils.kt
+index c6a72d8..7747e9f 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/ProjectUtils.kt
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/ProjectUtils.kt
+@@ -17,6 +17,8 @@ import com.facebook.react.utils.PropertyUtils.REACT_NATIVE_ARCHITECTURES
+ import com.facebook.react.utils.PropertyUtils.SCOPED_HERMES_ENABLED
+ import com.facebook.react.utils.PropertyUtils.SCOPED_NEW_ARCH_ENABLED
+ import com.facebook.react.utils.PropertyUtils.SCOPED_REACT_NATIVE_ARCHITECTURES
++import com.facebook.react.utils.PropertyUtils.SCOPED_USE_THIRD_PARTY_JSC
++import com.facebook.react.utils.PropertyUtils.USE_THIRD_PARTY_JSC
+ import org.gradle.api.Project
+ import org.gradle.api.file.DirectoryProperty
+ 
+@@ -57,6 +59,12 @@ internal object ProjectUtils {
+           HERMES_FALLBACK
+         }
+ 
++  internal val Project.useThirdPartyJSC: Boolean
++    get() = (project.hasProperty(USE_THIRD_PARTY_JSC) &&
++      project.property(USE_THIRD_PARTY_JSC).toString().toBoolean()) ||
++      (project.hasProperty(SCOPED_USE_THIRD_PARTY_JSC) &&
++        project.property(SCOPED_USE_THIRD_PARTY_JSC).toString().toBoolean())
++ 
+   internal fun Project.needsCodegenFromPackageJson(rootProperty: DirectoryProperty): Boolean {
+     val parsedPackageJson = readPackageJsonFile(this, rootProperty)
+     return needsCodegenFromPackageJson(parsedPackageJson)
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/PropertyUtils.kt b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/PropertyUtils.kt
+index 10a0cce..e3c0100 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/PropertyUtils.kt
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/utils/PropertyUtils.kt
+@@ -18,6 +18,10 @@ object PropertyUtils {
+   const val HERMES_ENABLED = "hermesEnabled"
+   const val SCOPED_HERMES_ENABLED = "react.hermesEnabled"
+ 
++  /** Public property that excludes jsctooling from core */
++  const val USE_THIRD_PARTY_JSC = "useThirdPartyJSC"
++  const val SCOPED_USE_THIRD_PARTY_JSC = "react.useThirdPartyJSC"
++
+   /** Public property that allows to control which architectures to build for React Native. */
+   const val REACT_NATIVE_ARCHITECTURES = "reactNativeArchitectures"
+   const val SCOPED_REACT_NATIVE_ARCHITECTURES = "react.nativeArchitectures"
