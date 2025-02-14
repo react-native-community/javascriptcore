@@ -6,7 +6,7 @@
  */
 #include "JSCExecutorFactory.h"
 
-#import <jsc/JSCRuntime.h>
+#import <React-jsc/JSCRuntime.h>
 
 #import <memory>
 
