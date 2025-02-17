@@ -14,7 +14,7 @@ val reactNativeDir = findNodePackageDir("react-native")
 val reactNativeManifest = file("${reactNativeDir}/package.json")
 val reactNativeManifestAsJson = JsonSlurper().parseText(reactNativeManifest.readText()) as Map<*, *>
 val reactNativeVersion = reactNativeManifestAsJson["version"] as String
-val (major, minor, patch) = reactNativeVersion.split(".")
+val (major, minor, patch) = reactNativeVersion.split("-")[0].split(".")
 val rnMinorVersion = minor.toInt()
 val rnPatchVersion = patch.toInt()
 val prefabHeadersDir = file("${layout.buildDirectory.get()}/prefab-headers")
@@ -105,8 +105,11 @@ dependencies {
 }
 
 val createPrefabHeadersDir by
-  tasks.registering {
-    prefabHeadersDir.mkdirs()
+  tasks.registering(Copy::class) {
+    from("src/main/cpp")
+    from("../common")
+    include("*.h")
+    into(prefabHeadersDir)
   }
 
 tasks.named("preBuild").dependsOn(createPrefabHeadersDir)
