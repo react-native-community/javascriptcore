@@ -29,7 +29,7 @@ Pod::Spec.new do |s|
 
   s.dependency "RCT-Folly", folly_version
   s.dependency "DoubleConversion"
-  # s.dependency "React-jsitooling" Uncomment once merged in React Native
+  s.dependency "React-jsitooling"
   s.dependency "React-cxxreact"
   s.dependency "React-jsi"
   s.dependency "React-jsiexecutor"
