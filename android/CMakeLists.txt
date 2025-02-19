@@ -48,6 +48,7 @@ target_include_directories(
   "${COMMON_DIR}"
   "${REACT_NATIVE_DIR}/ReactCommon"
   "${REACT_NATIVE_DIR}/ReactCommon/jsiexecutor"
+  "${REACT_NATIVE_DIR}/ReactCommon/jsitooling"
   "${REACT_NATIVE_DIR}/ReactAndroid/src/main/jni"
 )
 
