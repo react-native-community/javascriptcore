@@ -116,6 +116,15 @@ class MainApplication : Application(), ReactApplication {
 
 This library is maintained by [Callstack](https://callstack.com/) a Total Software Engineering Consultancy that transforms organizations and teams through transformative apps.
 
+### Special Thanks
+
+Special thanks to the team who worked on the initial extraction of JavaScriptCore from core react-native:
+
+- [Riccardo Cipolleschi](https://github.com/cipolleschi)
+- [Nicola Corti](https://github.com/cortinico)
+- [Kudo Chien](https://github.com/Kudo)
+- [Oskar Kwaśniewski](https://github.com/okwasniewski)
+
 ## License
 
 Everything inside this repository is [MIT licensed](./LICENSE).
