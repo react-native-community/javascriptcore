@@ -41,12 +41,12 @@ useThirdPartyJSC=true
 
 Open AppDelegate.swift and overwrite `createJSRuntimeFactory` method:
 
-```swift
+```diff
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import UIKit
-import RCTRuntime
++import RCTRuntime
 
 // AppDelegate code
 
@@ -63,9 +63,9 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
     #endif
   }
 
-  override func createJSRuntimeFactory() -> JSRuntimeFactory {
-    jsrt_create_jsc_factory() // Use JavaScriptCore runtime
-  }
++  override func createJSRuntimeFactory() -> JSRuntimeFactory {
++    jsrt_create_jsc_factory() // Use JavaScriptCore runtime
++  }
 }
 ```
 
@@ -73,9 +73,9 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
 Open `MainApplication.java` and overwrite `getJavaScriptExecutorFactory` method:
 
-```java
-import io.github.reactnativecommunity.javascriptcore.JSCExecutorFactory
-import io.github.reactnativecommunity.javascriptcore.JSCRuntimeFactory
+```diff
++import io.github.reactnativecommunity.javascriptcore.JSCExecutorFactory
++import io.github.reactnativecommunity.javascriptcore.JSCRuntimeFactory
 
 class MainApplication : Application(), ReactApplication {
 
@@ -94,12 +94,12 @@ class MainApplication : Application(), ReactApplication {
         override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
         override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
-        override fun getJavaScriptExecutorFactory(): JavaScriptExecutorFactory =
-          JSCExecutorFactory(packageName, AndroidInfoHelpers.getFriendlyDeviceName())
++        override fun getJavaScriptExecutorFactory(): JavaScriptExecutorFactory =
++          JSCExecutorFactory(packageName, AndroidInfoHelpers.getFriendlyDeviceName())
       }
 
-  override val reactHost: ReactHost
-    get() = getDefaultReactHost(applicationContext, reactNativeHost, JSCRuntimeFactory())
++  override val reactHost: ReactHost
++    get() = getDefaultReactHost(applicationContext, reactNativeHost, JSCRuntimeFactory())
 
   override fun onCreate() {
     super.onCreate()
@@ -115,6 +115,15 @@ class MainApplication : Application(), ReactApplication {
 ## Maintainers
 
 This library is maintained by [Callstack](https://callstack.com/) a Total Software Engineering Consultancy that transforms organizations and teams through transformative apps.
+
+### Special Thanks
+
+Special thanks to the team who worked on the initial extraction of JavaScriptCore from core react-native:
+
+- [Riccardo Cipolleschi](https://github.com/cipolleschi)
+- [Nicola Corti](https://github.com/cortinico)
+- [Kudo Chien](https://github.com/Kudo)
+- [Oskar Kwaśniewski](https://github.com/okwasniewski)
 
 ## License
 
