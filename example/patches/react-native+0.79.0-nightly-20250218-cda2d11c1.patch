@@ -1,0 +1,22 @@
+diff --git a/node_modules/react-native/Libraries/AppDelegate/RCTRootViewFactory.mm b/node_modules/react-native/Libraries/AppDelegate/RCTRootViewFactory.mm
+index a8f3644..8431750 100644
+--- a/node_modules/react-native/Libraries/AppDelegate/RCTRootViewFactory.mm
++++ b/node_modules/react-native/Libraries/AppDelegate/RCTRootViewFactory.mm
+@@ -38,6 +38,7 @@
+ #import <react/renderer/runtimescheduler/RuntimeScheduler.h>
+ #import <react/renderer/runtimescheduler/RuntimeSchedulerCallInvoker.h>
+ #import <react/runtime/JSRuntimeFactory.h>
++#import <React-jsc/RCTJscInstance.h>
+ 
+ @implementation RCTRootViewFactoryConfiguration
+ 
+@@ -269,7 +270,8 @@
+ #elif USE_THIRD_PARTY_JSC != 1
+   return std::make_shared<facebook::react::RCTJscInstance>();
+ #else
+-  throw std::runtime_error("No JSRuntimeFactory specified.");
++  return std::make_shared<facebook::react::RCTJscInstance>();
++//  throw std::runtime_error("No JSRuntimeFactory specified.");
+ #endif
+ }
+ 
