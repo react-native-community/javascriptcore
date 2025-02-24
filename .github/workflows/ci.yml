@@ -1,0 +1,106 @@
+name: React Native CI
+
+on:
+  pull_request:
+    branches: main
+  push:
+    branches: main
+  schedule:
+    - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
+
+jobs:
+  ios-build:
+    name: iOS Build
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          npm install --frozen-lockfile
+          cd ios && pod install
+
+      - name: Install Maestro CLI
+        run: |
+          export MAESTRO_VERSION=1.39.13; curl -Ls "https://get.maestro.mobile.dev" | bash
+          brew tap facebook/fb
+          brew install facebook/fb/idb-companion
+
+      - name: Add Maestro to path
+        run: echo "${HOME}/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Bundle iOS
+        run: npm run build:ios
+
+      - name: Build iOS
+        run: |
+          npm run ios:release
+
+      - name: Run iOS tests
+        run: export MAESTRO_DRIVER_STARTUP_TIMEOUT=120000; npm run test:e2e
+
+  android-build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: example/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --frozen-lockfile
+
+      - name: Bundle Android
+        run: npm run build:android
+
+      - name: Install Maestro CLI
+        run: |
+          export MAESTRO_VERSION=1.39.13; curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Add Maestro to path
+        run: echo "${HOME}/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Create AVD and generate snapshot for caching
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          target: aosp_atd
+          api-level: 30
+          arch: x86
+          ram-size: 4096M
+          channel: canary
+          profile: pixel
+          avd-name: Pixel_3a_API_30_AOSP
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 12000
+          disable-animations: false
+          working-directory: example
+          script: |
+            npm run android:release
+            npm run test:e2e
