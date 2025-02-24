@@ -114,7 +114,8 @@ class MainApplication : Application(), ReactApplication {
 
 ## Maintainers
 
-This library is maintained by [Callstack](https://callstack.com/) a Total Software Engineering Consultancy that transforms organizations and teams through transformative apps.
+- [Callstack](https://callstack.com/) – A Total Software Engineering Consultancy that transforms organizations and teams through transformative apps.
+- [Expo](https://expo.dev/) - An open-source platform for making universal native apps for Android, iOS, and the web with JavaScript and React.
 
 ### Special Thanks
 
@@ -124,6 +125,7 @@ Special thanks to the team who worked on the initial extraction of JavaScriptCor
 - [Nicola Corti](https://github.com/cortinico)
 - [Kudo Chien](https://github.com/Kudo)
 - [Oskar Kwaśniewski](https://github.com/okwasniewski)
+- [jsc-android](https://github.com/react-native-community/jsc-android-buildscripts) - This project uses **jsc-android** under the hood, which is supported by [Expo](https://expo.dev), [Software Mansion](https://swmansion.com/), and [Wix](https://www.wix.engineering/).
 
 ## License
 
