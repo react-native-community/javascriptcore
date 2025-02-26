@@ -3,11 +3,16 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "react-native run-android --mode release",
+    "ios": "react-native run-ios --mode Release",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "mkdist": "node -e \"require('node:fs').mkdirSync('dist', { recursive: true, mode: 0o755 })\"",
+    "build:android": "npm run mkdist && react-native bundle --entry-file index.js --platform android --bundle-output dist/main.android.jsbundle --assets-dest dist/res --dev false",
+    "build:ios": "npm run mkdist && react-native bundle --entry-file index.js --platform ios --bundle-output dist/main.ios.jsbundle --assets-dest dist --dev false",
+    "test:e2e": "maestro test maestro-tests",
+    "postinstall": "npx patch-package"
   },
   "dependencies": {
     "react": "19.0.0",
