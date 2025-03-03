@@ -5,19 +5,16 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#import <react/runtime/JSRuntimeFactoryCAPI.h>
+
 #pragma once
 
 #ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <jsi/jsi.h>
-#include <memory.h>
+JSRuntimeFactoryRef jsrt_create_jsc_factory(void);
 
-namespace facebook {
-namespace jsc {
-
-std::unique_ptr<jsi::Runtime> makeJSCRuntime();
-
-} // namespace jsc
-} // namespace facebook
-
+#ifdef __cplusplus
+}
 #endif
