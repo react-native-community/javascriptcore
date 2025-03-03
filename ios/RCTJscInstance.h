@@ -5,6 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#ifdef __cplusplus
+
 #import <cxxreact/MessageQueueThread.h>
 #import <jsi/jsi.h>
 #import <react/runtime/JSRuntimeFactory.h>
@@ -23,3 +25,5 @@ class RCTJscInstance : public JSRuntimeFactory {
 };
 } // namespace react
 } // namespace facebook
+
+#endif

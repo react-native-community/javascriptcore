@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native/Libraries/AppDelegate/RCTDefaultReactNativeFactoryDelegate.mm b/node_modules/react-native/Libraries/AppDelegate/RCTDefaultReactNativeFactoryDelegate.mm
+index 4f4b113..1c9da89 100644
+--- a/node_modules/react-native/Libraries/AppDelegate/RCTDefaultReactNativeFactoryDelegate.mm
++++ b/node_modules/react-native/Libraries/AppDelegate/RCTDefaultReactNativeFactoryDelegate.mm
+@@ -49,6 +49,8 @@
+   return jsrt_create_hermes_factory();
+ #elif USE_THIRD_PARTY_JSC != 1
+   return jsrt_create_jsc_factory();
++#else
++  return nullptr;
+ #endif
+ }
+ 
