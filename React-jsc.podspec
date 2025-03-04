@@ -26,6 +26,8 @@ Pod::Spec.new do |s|
   s.source_files           = "common/*.{cpp,h}", "ios/*.{mm,h}"
   s.compiler_flags = folly_compiler_flags + ' ' + boost_compiler_flags
   s.weak_framework         = "JavaScriptCore"
+  s.pod_target_xcconfig    = { "DEFINES_MODULE" => "YES" }
+  s.module_name            = "ReactJSC"
 
   s.dependency "RCT-Folly", folly_version
   s.dependency "DoubleConversion"

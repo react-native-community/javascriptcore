@@ -10,6 +10,8 @@ prepare_react_native_project!
 
 # Disable linking of internal JSC
 ENV['USE_THIRD_PARTY_JSC'] = '1'
+# Extracted JSC works only with new arch
+ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
