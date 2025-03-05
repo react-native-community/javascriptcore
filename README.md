@@ -46,7 +46,7 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import UIKit
-+import RCTRuntime
++import ReactJSC
 
 // AppDelegate code
 
