@@ -1,0 +1,56 @@
+appId: com.jscexample
+---
+- launchApp:
+    appId: com.jscexample
+- takeScreenshot: MainScreen
+- assertVisible:
+    text: "Welcome to React Native"
+
+# Console Log Test
+- tapOn: "Console Log Test"
+- assertVisible:
+    text: "Console Test Result"
+- assertVisible:
+    text: "Hello from JSC"
+
+# Basic Operations
+- tapOn: "Basic Operations"
+- assertVisible:
+    text: "Basic Operations Result"
+- assertVisible:
+    text: "Math: 4\nString: Hello World\nArray: 2,4,6"
+
+# Complex Operations
+- tapOn: "Complex Operations"
+- assertVisible:
+    text: "Complex Operations Result"
+- assertVisible:
+    text: "Object: {\"a\":1,\"b\":2}\nSquare(4): 16\nDynamic function(4): 12"
+
+# Global Access Test
+- tapOn: "Global Access Test"
+- assertVisible:
+    text: "Global Access Result"
+- assertVisible:
+    text: "SetTimeout exists: true"
+
+# Error Handling Test
+- tapOn: "Error Handling Test"
+- assertVisible:
+    text: "Error Handling Result"
+- assertVisible:
+    text: "Regular error: Custom error\nType error: undefined is not an object (evaluating 'undefined1.someMethod')\nEval error: Unexpected identifier 'error'"
+
+# Async Test
+- tapOn: "Async Test"
+- assertVisible:
+    text: "Async Test Result"
+- assertVisible:
+    text: "Regular async completed"
+
+# Memory & Performance Test
+- tapOn: "Memory & Performance"
+- assertVisible:
+    text: "Memory & Performance Result"
+- assertVisible:
+    text: "Array length: 1000000"

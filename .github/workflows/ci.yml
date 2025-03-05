@@ -1,0 +1,131 @@
+name: React Native CI
+
+on:
+  pull_request:
+    branches: main
+  push:
+    branches: main
+  schedule:
+    - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
+
+jobs:
+  ios-build:
+    name: iOS Build
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: example/package-lock.json
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            example/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('example/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          npm install --frozen-lockfile
+          cd ios && pod install
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          brew tap facebook/fb
+          brew install facebook/fb/idb-companion
+
+      - name: Add Maestro to path
+        run: echo "${HOME}/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Start packager
+        run: npm start &
+
+      - name: Build iOS
+        run: |
+          npm run ios
+
+      - name: Setup iOS simulator
+        run: |
+          UDID=$(xcrun simctl list devices | grep "iPhone" | grep "Booted" | head -1 | grep -E -o -i "([0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12})")
+          if [ -z "$UDID" ]; then
+            UDID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -E -o -i "([0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12})")
+            xcrun simctl boot "${UDID}"
+          fi
+          open -a Simulator
+          xcrun simctl launch "${UDID}" com.jscexample
+
+      - name: Run iOS tests
+        run: |
+          export MAESTRO_DRIVER_STARTUP_TIMEOUT=1500000
+          export MAESTRO_WAIT_TIMEOUT=10000
+          npm run test:e2e
+
+
+  android-build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: example/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --frozen-lockfile
+
+      - name: Start packager
+        run: npm start &
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Add Maestro to path
+        run: echo "${HOME}/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Create AVD and generate snapshot for caching
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          target: aosp_atd
+          api-level: 30
+          arch: x86
+          ram-size: 4096M
+          channel: canary
+          profile: pixel
+          avd-name: Pixel_3a_API_30_AOSP
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 12000
+          disable-animations: false
+          working-directory: example
+          script: |
+            npm run android
+            npm run test:e2e
