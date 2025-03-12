@@ -2,7 +2,7 @@
 
 Opt-in to use JavaScriptCore runtime in React Native.
 
-_Note: JavaScriptCore has been extracted from core react-native as a part of [Lean Core JSC RFC](https://github.com/react-native-community/discussions-and-proposals/pull/836)._
+_Note: JavaScriptCore has been extracted from core react-native as a part of [Lean Core JSC RFC](https://github.com/react-native-community/discussions-and-proposals/blob/main/proposals/0836-lean-core-jsc.md)([PR](https://github.com/react-native-community/discussions-and-proposals/pull/836))._
 
 ## Installation
 
