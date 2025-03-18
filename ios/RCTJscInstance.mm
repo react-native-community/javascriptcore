@@ -13,9 +13,21 @@ namespace react {
 
 RCTJscInstance::RCTJscInstance() {}
 
+void JSCExecutorFactory::setEnableDebugger(bool enableDebugger) {
+  enableDebugger_ = enableDebugger;
+}
+
+void JSCExecutorFactory::setDebuggerName(const std::string &debuggerName) {
+  debuggerName_ = debuggerName;
+}
+
 std::unique_ptr<JSRuntime> RCTJscInstance::createJSRuntime(std::shared_ptr<MessageQueueThread> msgQueueThread) noexcept
 {
-  return std::make_unique<JSIRuntimeHolder>(jsc::makeJSCRuntime());
+  jsc::RuntimeConfig rc = {
+    .enableDebugger = enableDebugger_,
+    .debuggerName = debuggerName_,
+  };
+  return std::make_unique<JSIRuntimeHolder>(jsc::makeJSCRuntime(std::move(rc)));
 }
 
 } // namespace react
