@@ -13,11 +13,11 @@ namespace react {
 
 RCTJscInstance::RCTJscInstance() {}
 
-void JSCExecutorFactory::setEnableDebugger(bool enableDebugger) {
+void RCTJscInstance::setEnableDebugger(bool enableDebugger) {
   enableDebugger_ = enableDebugger;
 }
 
-void JSCExecutorFactory::setDebuggerName(const std::string &debuggerName) {
+void RCTJscInstance::setDebuggerName(const std::string &debuggerName) {
   debuggerName_ = debuggerName;
 }
 
