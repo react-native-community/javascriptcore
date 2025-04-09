@@ -76,6 +76,8 @@ Open `MainApplication.java` and overwrite `getJavaScriptExecutorFactory` method:
 ```diff
 +import io.github.reactnativecommunity.javascriptcore.JSCExecutorFactory
 +import io.github.reactnativecommunity.javascriptcore.JSCRuntimeFactory
++import com.facebook.react.bridge.JavaScriptExecutorFactory
++import com.facebook.react.modules.systeminfo.AndroidInfoHelpers
 
 class MainApplication : Application(), ReactApplication {
 
