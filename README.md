@@ -63,7 +63,7 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
     #endif
   }
 
-+  override func createJSRuntimeFactory() -> JSRuntimeFactory {
++  override func createJSRuntimeFactory() -> JSRuntimeFactoryRef {
 +    jsrt_create_jsc_factory() // Use JavaScriptCore runtime
 +  }
 }
