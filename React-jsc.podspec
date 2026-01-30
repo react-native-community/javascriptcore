@@ -23,7 +23,7 @@ Pod::Spec.new do |s|
   s.author                 = "Meta Platforms, Inc. and its affiliates"
   s.platforms              = { :ios => "15.1", :tvos => "15.1", :visionos => "1.0", :osx => "10.15" }
   s.source                 = { :git => "https://github.com/react-native-community/javascriptcore.git", :tag => "#{s.version}" }
-  s.source_files           = "common/*.{cpp,h}", "ios/*.{mm,h}"
+  s.source_files           = "common/*.{cpp,h}", "apple/*.{mm,h}"
   s.compiler_flags = folly_compiler_flags + ' ' + boost_compiler_flags
   s.weak_framework         = "JavaScriptCore"
   s.pod_target_xcconfig    = { "DEFINES_MODULE" => "YES" }
