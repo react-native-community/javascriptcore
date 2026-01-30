@@ -18,6 +18,17 @@
 #include <sstream>
 #include <thread>
 
+// ASAN's stack use-after-free checking moves values to a shadow
+// stack, which breaks JSC's scanning of the stack to find roots,
+// which can lead to JS objects being prematurely freed. We need
+// to disable ASAN instrumentation for any function that operates
+// with JSC values on the stack to avoid that.
+#if __has_feature(address_sanitizer)
+#define JSI_DISABLE_ASAN __attribute__((no_sanitize("address")))
+#else
+#define JSI_DISABLE_ASAN
+#endif
+
 namespace facebook {
 namespace jsc {
 
@@ -71,7 +82,7 @@ class JSCRuntime : public jsi::Runtime {
 
   // Please don't use the following two functions, only exposed for
   // integration efforts.
-  JSGlobalContextRef getContext() {
+  JSGlobalContextRef getContext() JSI_DISABLE_ASAN {
     return ctx_;
   }
 
@@ -308,7 +319,7 @@ class JSCRuntime : public jsi::Runtime {
 
 // JSStringRef utilities
 namespace {
-std::string JSStringToSTLString(JSStringRef str) {
+std::string JSStringToSTLString(JSStringRef str) JSI_DISABLE_ASAN {
   // Small string optimization: Avoid one heap allocation for strings that fit
   // in stackBuffer.size() bytes of UTF-8 (including the null terminator).
   std::array<char, 20> stackBuffer;
@@ -338,17 +349,17 @@ std::string JSStringToSTLString(JSStringRef str) {
   return std::string(buffer, actualBytes - 1);
 }
 
-JSStringRef getLengthString() {
+JSStringRef getLengthString() JSI_DISABLE_ASAN {
   static JSStringRef length = JSStringCreateWithUTF8CString("length");
   return length;
 }
 
-JSStringRef getNameString() {
+JSStringRef getNameString() JSI_DISABLE_ASAN {
   static JSStringRef name = JSStringCreateWithUTF8CString("name");
   return name;
 }
 
-JSStringRef getFunctionString() {
+JSStringRef getFunctionString() JSI_DISABLE_ASAN {
   static JSStringRef func = JSStringCreateWithUTF8CString("Function");
   return func;
 }
@@ -363,7 +374,7 @@ std::string to_string(void* value) {
 }
 } // namespace
 
-JSCRuntime::JSCRuntime()
+JSCRuntime::JSCRuntime() JSI_DISABLE_ASAN
     : JSCRuntime(JSGlobalContextCreateInGroup(nullptr, nullptr)) {
   JSGlobalContextRelease(ctx_);
 }
@@ -379,7 +390,7 @@ JSCRuntime::JSCRuntime(const facebook::jsc::RuntimeConfig& rc)
 
 }
 
-JSCRuntime::JSCRuntime(JSGlobalContextRef ctx)
+JSCRuntime::JSCRuntime(JSGlobalContextRef ctx) JSI_DISABLE_ASAN
     : ctx_(JSGlobalContextRetain(ctx)),
       ctxInvalid_(false)
 #ifndef NDEBUG
@@ -397,7 +408,7 @@ JSCRuntime::JSCRuntime(JSGlobalContextRef ctx)
 #endif
 }
 
-JSCRuntime::~JSCRuntime() {
+JSCRuntime::~JSCRuntime() JSI_DISABLE_ASAN { 
   // We need to clear the microtask queue to remove all references to the
   // callbacks, so objectCounter_ would be 0 below.
   microtaskQueue_.clear();
@@ -439,7 +450,7 @@ jsi::Value JSCRuntime::evaluatePreparedJavaScript(
 
 jsi::Value JSCRuntime::evaluateJavaScript(
     const std::shared_ptr<const jsi::Buffer>& buffer,
-    const std::string& sourceURL) {
+    const std::string& sourceURL) JSI_DISABLE_ASAN {
   std::string tmp(
       reinterpret_cast<const char*>(buffer->data()), buffer->size());
   JSStringRef sourceRef = JSStringCreateWithUTF8CString(tmp.c_str());
@@ -478,7 +489,7 @@ bool JSCRuntime::drainMicrotasks(int /*maxMicrotasksHint*/) {
   return true;
 }
 
-jsi::Object JSCRuntime::global() {
+jsi::Object JSCRuntime::global() JSI_DISABLE_ASAN {
   return createObject(JSContextGetGlobalObject(ctx_));
 }
 
@@ -501,7 +512,7 @@ JSCRuntime::JSCSymbolValue::JSCSymbolValue(
     ,
     std::atomic<intptr_t>& counter
 #endif
-    )
+    ) JSI_DISABLE_ASAN
     : ctx_(ctx),
       ctxInvalid_(ctxInvalid),
       sym_(sym)
@@ -517,7 +528,7 @@ JSCRuntime::JSCSymbolValue::JSCSymbolValue(
 #endif
 }
 
-void JSCRuntime::JSCSymbolValue::invalidate() noexcept {
+void JSCRuntime::JSCSymbolValue::invalidate() JSI_DISABLE_ASAN noexcept {
 #ifndef NDEBUG
   counter_ -= 1;
 #endif
@@ -531,7 +542,7 @@ void JSCRuntime::JSCSymbolValue::invalidate() noexcept {
 #ifndef NDEBUG
 JSCRuntime::JSCStringValue::JSCStringValue(
     JSStringRef str,
-    std::atomic<intptr_t>& counter)
+    std::atomic<intptr_t>& counter) JSI_DISABLE_ASAN
     : str_(JSStringRetain(str)), counter_(counter) {
   // Since std::atomic returns a copy instead of a reference when calling
   // operator+= we must do this explicitly in the constructor
@@ -542,7 +553,7 @@ JSCRuntime::JSCStringValue::JSCStringValue(JSStringRef str)
     : str_(JSStringRetain(str)) {}
 #endif
 
-void JSCRuntime::JSCStringValue::invalidate() noexcept {
+void JSCRuntime::JSCStringValue::invalidate() JSI_DISABLE_ASAN noexcept {
   // These JSC{String,Object}Value objects are implicitly owned by the
   // {String,Object} objects, thus when a String/Object is destructed
   // the JSC{String,Object}Value should be released.
@@ -562,7 +573,7 @@ JSCRuntime::JSCObjectValue::JSCObjectValue(
     ,
     std::atomic<intptr_t>& counter
 #endif
-    )
+    ) JSI_DISABLE_ASAN
     : ctx_(ctx),
       ctxInvalid_(ctxInvalid),
       obj_(obj)
@@ -577,7 +588,7 @@ JSCRuntime::JSCObjectValue::JSCObjectValue(
 #endif
 }
 
-void JSCRuntime::JSCObjectValue::invalidate() noexcept {
+void JSCRuntime::JSCObjectValue::invalidate() JSI_DISABLE_ASAN noexcept {
 #ifndef NDEBUG
   counter_ -= 1;
 #endif
@@ -610,7 +621,7 @@ void JSCRuntime::JSCObjectValue::invalidate() noexcept {
 }
 
 jsi::Runtime::PointerValue* JSCRuntime::cloneSymbol(
-    const jsi::Runtime::PointerValue* pv) {
+    const jsi::Runtime::PointerValue* pv) JSI_DISABLE_ASAN {
   if (!pv) {
     return nullptr;
   }
@@ -624,7 +635,7 @@ jsi::Runtime::PointerValue* JSCRuntime::cloneBigInt(
 }
 
 jsi::Runtime::PointerValue* JSCRuntime::cloneString(
-    const jsi::Runtime::PointerValue* pv) {
+    const jsi::Runtime::PointerValue* pv) JSI_DISABLE_ASAN {
   if (!pv) {
     return nullptr;
   }
@@ -633,7 +644,7 @@ jsi::Runtime::PointerValue* JSCRuntime::cloneString(
 }
 
 jsi::Runtime::PointerValue* JSCRuntime::cloneObject(
-    const jsi::Runtime::PointerValue* pv) {
+    const jsi::Runtime::PointerValue* pv) JSI_DISABLE_ASAN {
   if (!pv) {
     return nullptr;
   }
@@ -645,7 +656,7 @@ jsi::Runtime::PointerValue* JSCRuntime::cloneObject(
 }
 
 jsi::Runtime::PointerValue* JSCRuntime::clonePropNameID(
-    const jsi::Runtime::PointerValue* pv) {
+    const jsi::Runtime::PointerValue* pv) JSI_DISABLE_ASAN {
   if (!pv) {
     return nullptr;
   }
@@ -655,7 +666,7 @@ jsi::Runtime::PointerValue* JSCRuntime::clonePropNameID(
 
 jsi::PropNameID JSCRuntime::createPropNameIDFromAscii(
     const char* str,
-    size_t length) {
+    size_t length) JSI_DISABLE_ASAN {
   // For system JSC this must is identical to a string
   std::string tmp(str, length);
   JSStringRef strRef = JSStringCreateWithUTF8CString(tmp.c_str());
@@ -666,7 +677,7 @@ jsi::PropNameID JSCRuntime::createPropNameIDFromAscii(
 
 jsi::PropNameID JSCRuntime::createPropNameIDFromUtf8(
     const uint8_t* utf8,
-    size_t length) {
+    size_t length) JSI_DISABLE_ASAN {
   std::string tmp(reinterpret_cast<const char*>(utf8), length);
   JSStringRef strRef = JSStringCreateWithUTF8CString(tmp.c_str());
   auto res = createPropNameID(strRef);
@@ -674,7 +685,7 @@ jsi::PropNameID JSCRuntime::createPropNameIDFromUtf8(
   return res;
 }
 
-jsi::PropNameID JSCRuntime::createPropNameIDFromString(const jsi::String& str) {
+jsi::PropNameID JSCRuntime::createPropNameIDFromString(const jsi::String& str) JSI_DISABLE_ASAN {
   return createPropNameID(stringRef(str));
 }
 
@@ -685,11 +696,11 @@ jsi::PropNameID JSCRuntime::createPropNameIDFromSymbol(const jsi::Symbol& sym) {
   throw std::logic_error("Not implemented");
 }
 
-std::string JSCRuntime::utf8(const jsi::PropNameID& sym) {
+std::string JSCRuntime::utf8(const jsi::PropNameID& sym) JSI_DISABLE_ASAN {
   return JSStringToSTLString(stringRef(sym));
 }
 
-bool JSCRuntime::compare(const jsi::PropNameID& a, const jsi::PropNameID& b) {
+bool JSCRuntime::compare(const jsi::PropNameID& a, const jsi::PropNameID& b) JSI_DISABLE_ASAN {
   return JSStringIsEqual(stringRef(a), stringRef(b));
 }
 
@@ -730,7 +741,7 @@ jsi::String JSCRuntime::createStringFromAscii(const char* str, size_t length) {
 
 jsi::String JSCRuntime::createStringFromUtf8(
     const uint8_t* str,
-    size_t length) {
+    size_t length) JSI_DISABLE_ASAN {
   std::string tmp(reinterpret_cast<const char*>(str), length);
   JSStringRef stringRef = JSStringCreateWithUTF8CString(tmp.c_str());
   auto result = createString(stringRef);
@@ -738,11 +749,11 @@ jsi::String JSCRuntime::createStringFromUtf8(
   return result;
 }
 
-std::string JSCRuntime::utf8(const jsi::String& str) {
+std::string JSCRuntime::utf8(const jsi::String& str) JSI_DISABLE_ASAN {
   return JSStringToSTLString(stringRef(str));
 }
 
-jsi::Object JSCRuntime::createObject() {
+jsi::Object JSCRuntime::createObject() JSI_DISABLE_ASAN {
   return createObject(static_cast<JSObjectRef>(nullptr));
 }
 
@@ -762,13 +773,13 @@ std::once_flag hostObjectClassOnceFlag;
 JSClassRef hostObjectClass{};
 } // namespace
 
-jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) {
+jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) JSI_DISABLE_ASAN {
   struct HostObjectProxy : public HostObjectProxyBase {
     static JSValueRef getProperty(
         JSContextRef ctx,
         JSObjectRef object,
         JSStringRef propName,
-        JSValueRef* exception) {
+        JSValueRef* exception) JSI_DISABLE_ASAN {
       auto proxy = static_cast<HostObjectProxy*>(JSObjectGetPrivate(object));
       auto& rt = proxy->runtime;
       jsi::PropNameID sym = rt.createPropNameID(propName);
@@ -853,7 +864,7 @@ jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) {
     static void getPropertyNames(
         JSContextRef ctx,
         JSObjectRef object,
-        JSPropertyNameAccumulatorRef propertyNames) noexcept {
+        JSPropertyNameAccumulatorRef propertyNames) JSI_DISABLE_ASAN noexcept {
       JSC_UNUSED(ctx);
       auto proxy = static_cast<HostObjectProxy*>(JSObjectGetPrivate(object));
       auto& rt = proxy->runtime;
@@ -865,7 +876,7 @@ jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) {
 
 #undef JSC_UNUSED
 
-    static void finalize(JSObjectRef obj) {
+    static void finalize(JSObjectRef obj) JSI_DISABLE_ASAN {
       auto hostObject = static_cast<HostObjectProxy*>(JSObjectGetPrivate(obj));
       JSObjectSetPrivate(obj, nullptr);
       delete hostObject;
@@ -874,7 +885,7 @@ jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) {
     using HostObjectProxyBase::HostObjectProxyBase;
   };
 
-  std::call_once(hostObjectClassOnceFlag, []() {
+  std::call_once(hostObjectClassOnceFlag, []() JSI_DISABLE_ASAN {
     JSClassDefinition hostObjectClassDef = kJSClassDefinitionEmpty;
     hostObjectClassDef.version = 0;
     hostObjectClassDef.attributes = kJSClassAttributeNoAutomaticPrototype;
@@ -891,7 +902,7 @@ jsi::Object JSCRuntime::createObject(std::shared_ptr<jsi::HostObject> ho) {
 }
 
 std::shared_ptr<jsi::HostObject> JSCRuntime::getHostObject(
-    const jsi::Object& obj) {
+    const jsi::Object& obj) JSI_DISABLE_ASAN {
   // We are guaranteed at this point to have isHostObject(obj) == true
   // so the private data should be HostObjectMetadata
   JSObjectRef object = objectRef(obj);
@@ -908,14 +919,14 @@ struct NativeStateContainer {
 
   std::shared_ptr<jsi::NativeState> nativeState;
 
-  static void finalize(JSObjectRef obj) {
+  static void finalize(JSObjectRef obj) JSI_DISABLE_ASAN {
     auto container =
         static_cast<NativeStateContainer*>(JSObjectGetPrivate(obj));
     delete container;
   }
 };
 
-JSClassRef getNativeStateClass() {
+JSClassRef getNativeStateClass() JSI_DISABLE_ASAN {
   static JSClassRef nativeStateClass = [] {
     JSClassDefinition nativeStateClassDef = kJSClassDefinitionEmpty;
     nativeStateClassDef.version = 0;
@@ -927,7 +938,7 @@ JSClassRef getNativeStateClass() {
 }
 } // namespace
 
-JSValueRef JSCRuntime::getNativeStateSymbol() {
+JSValueRef JSCRuntime::getNativeStateSymbol() JSI_DISABLE_ASAN {
   if (!nativeStateSymbol_) {
     JSStringRef symbolName =
         JSStringCreateWithUTF8CString("__internal_nativeState");
@@ -939,7 +950,7 @@ JSValueRef JSCRuntime::getNativeStateSymbol() {
   return nativeStateSymbol_;
 }
 
-bool JSCRuntime::hasNativeState(const jsi::Object& obj) {
+bool JSCRuntime::hasNativeState(const jsi::Object& obj) JSI_DISABLE_ASAN {
   JSValueRef exc = nullptr;
   JSValueRef state = JSObjectGetPropertyForKey(
       ctx_, objectRef(obj), getNativeStateSymbol(), &exc);
@@ -949,7 +960,7 @@ bool JSCRuntime::hasNativeState(const jsi::Object& obj) {
 }
 
 std::shared_ptr<jsi::NativeState> JSCRuntime::getNativeState(
-    const jsi::Object& obj) {
+    const jsi::Object& obj) JSI_DISABLE_ASAN {
   JSValueRef exc = nullptr;
   JSValueRef state = JSObjectGetPropertyForKey(
       ctx_, objectRef(obj), getNativeStateSymbol(), &exc);
@@ -966,7 +977,7 @@ std::shared_ptr<jsi::NativeState> JSCRuntime::getNativeState(
 
 void JSCRuntime::setNativeState(
     const jsi::Object& obj,
-    std::shared_ptr<jsi::NativeState> nativeState) {
+    std::shared_ptr<jsi::NativeState> nativeState) JSI_DISABLE_ASAN {
   JSValueRef nativeStateSymbol = getNativeStateSymbol();
 
   JSValueRef exc = nullptr;
@@ -1000,7 +1011,7 @@ void JSCRuntime::setNativeState(
 
 jsi::Value JSCRuntime::getProperty(
     const jsi::Object& obj,
-    const jsi::String& name) {
+    const jsi::String& name) JSI_DISABLE_ASAN {
   JSObjectRef objRef = objectRef(obj);
   JSValueRef exc = nullptr;
   JSValueRef res = JSObjectGetProperty(ctx_, objRef, stringRef(name), &exc);
@@ -1010,7 +1021,7 @@ jsi::Value JSCRuntime::getProperty(
 
 jsi::Value JSCRuntime::getProperty(
     const jsi::Object& obj,
-    const jsi::PropNameID& name) {
+    const jsi::PropNameID& name) JSI_DISABLE_ASAN {
   JSObjectRef objRef = objectRef(obj);
   JSValueRef exc = nullptr;
   JSValueRef res = JSObjectGetProperty(ctx_, objRef, stringRef(name), &exc);
@@ -1018,14 +1029,14 @@ jsi::Value JSCRuntime::getProperty(
   return createValue(res);
 }
 
-bool JSCRuntime::hasProperty(const jsi::Object& obj, const jsi::String& name) {
+bool JSCRuntime::hasProperty(const jsi::Object& obj, const jsi::String& name) JSI_DISABLE_ASAN {
   JSObjectRef objRef = objectRef(obj);
   return JSObjectHasProperty(ctx_, objRef, stringRef(name));
 }
 
 bool JSCRuntime::hasProperty(
     const jsi::Object& obj,
-    const jsi::PropNameID& name) {
+    const jsi::PropNameID& name) JSI_DISABLE_ASAN {
   JSObjectRef objRef = objectRef(obj);
   return JSObjectHasProperty(ctx_, objRef, stringRef(name));
 }
@@ -1033,7 +1044,7 @@ bool JSCRuntime::hasProperty(
 void JSCRuntime::setPropertyValue(
     const jsi::Object& object,
     const jsi::PropNameID& name,
-    const jsi::Value& value) {
+    const jsi::Value& value) JSI_DISABLE_ASAN {
   JSValueRef exc = nullptr;
   JSObjectSetProperty(
       ctx_,
@@ -1048,7 +1059,7 @@ void JSCRuntime::setPropertyValue(
 void JSCRuntime::setPropertyValue(
     const jsi::Object& object,
     const jsi::String& name,
-    const jsi::Value& value) {
+    const jsi::Value& value) JSI_DISABLE_ASAN {
   JSValueRef exc = nullptr;
   JSObjectSetProperty(
       ctx_,
@@ -1060,35 +1071,35 @@ void JSCRuntime::setPropertyValue(
   checkException(exc);
 }
 
-bool JSCRuntime::isArray(const jsi::Object& obj) const {
+bool JSCRuntime::isArray(const jsi::Object& obj) const JSI_DISABLE_ASAN {
   return JSValueIsArray(ctx_, objectRef(obj));
 }
 
-bool JSCRuntime::isArrayBuffer(const jsi::Object& obj) const {
+bool JSCRuntime::isArrayBuffer(const jsi::Object& obj) const JSI_DISABLE_ASAN {
   auto typedArrayType = JSValueGetTypedArrayType(ctx_, objectRef(obj), nullptr);
   return typedArrayType == kJSTypedArrayTypeArrayBuffer;
 }
 
-uint8_t* JSCRuntime::data(const jsi::ArrayBuffer& obj) {
+uint8_t* JSCRuntime::data(const jsi::ArrayBuffer& obj) JSI_DISABLE_ASAN {
   return static_cast<uint8_t*>(
       JSObjectGetArrayBufferBytesPtr(ctx_, objectRef(obj), nullptr));
 }
 
-size_t JSCRuntime::size(const jsi::ArrayBuffer& obj) {
+size_t JSCRuntime::size(const jsi::ArrayBuffer& obj) JSI_DISABLE_ASAN {
   return JSObjectGetArrayBufferByteLength(ctx_, objectRef(obj), nullptr);
 }
 
-bool JSCRuntime::isFunction(const jsi::Object& obj) const {
+bool JSCRuntime::isFunction(const jsi::Object& obj) const JSI_DISABLE_ASAN {
   return JSObjectIsFunction(ctx_, objectRef(obj));
 }
 
-bool JSCRuntime::isHostObject(const jsi::Object& obj) const {
+bool JSCRuntime::isHostObject(const jsi::Object& obj) const JSI_DISABLE_ASAN {
   auto cls = hostObjectClass;
   return cls != nullptr && JSValueIsObjectOfClass(ctx_, objectRef(obj), cls);
 }
 
 // Very expensive
-jsi::Array JSCRuntime::getPropertyNames(const jsi::Object& obj) {
+jsi::Array JSCRuntime::getPropertyNames(const jsi::Object& obj) JSI_DISABLE_ASAN {
   JSPropertyNameArrayRef names =
       JSObjectCopyPropertyNames(ctx_, objectRef(obj));
   size_t len = JSPropertyNameArrayGetCount(names);
@@ -1102,13 +1113,13 @@ jsi::Array JSCRuntime::getPropertyNames(const jsi::Object& obj) {
   return result;
 }
 
-jsi::WeakObject JSCRuntime::createWeakObject(const jsi::Object& obj) {
+jsi::WeakObject JSCRuntime::createWeakObject(const jsi::Object& obj) JSI_DISABLE_ASAN {
   // TODO: revisit this implementation
   JSObjectRef objRef = objectRef(obj);
   return make<jsi::WeakObject>(makeObjectValue(objRef));
 }
 
-jsi::Value JSCRuntime::lockWeakObject(const jsi::WeakObject& obj) {
+jsi::Value JSCRuntime::lockWeakObject(const jsi::WeakObject& obj) JSI_DISABLE_ASAN {
   // TODO: revisit this implementation
   JSObjectRef objRef = objectRef(obj);
   return jsi::Value(createObject(objRef));
