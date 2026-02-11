@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "react": "19.0.0",
-    "react-native": "nightly"
+    "react-native": "0.79.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -25,10 +25,10 @@
     "@react-native-community/cli": "15.0.1",
     "@react-native-community/cli-platform-android": "15.0.1",
     "@react-native-community/cli-platform-ios": "15.0.1",
-    "@react-native/babel-preset": "nightly",
-    "@react-native/eslint-config": "nightly",
-    "@react-native/metro-config": "nightly",
-    "@react-native/typescript-config": "nightly",
+    "@react-native/babel-preset": "0.79.0",
+    "@react-native/eslint-config": "0.79.0",
+    "@react-native/metro-config": "0.79.0",
+    "@react-native/typescript-config": "0.79.0",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.0.0",
     "@types/react-test-renderer": "^19.0.0",
